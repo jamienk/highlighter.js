@@ -115,15 +115,24 @@
                         if (sel.getRangeAt && sel.rangeCount) {
                             range = window.getSelection().getRangeAt(0);
 
+                            //this lets us place stuff at end
                             expandedSelRange = range.cloneRange();
                             expandedSelRange.collapse(false);
+                            //this lets us place stuff at beginning
+                            b4SelRange = range.cloneRange();
+                            b4SelRange.collapse(true);
 
                             // Range.createContextualFragment() would be useful here but is
                             // non-standard and not supported in all browsers (IE9, for one)
-                            var el = document.createElement("div");
-                            el.innerHTML = html;
+                            //var el = document.createElement("div");//not used
+                            //el.innerHTML = html;//not used
                             var dummy = document.createElement("span");
+                            dummy.className = "dummyafter dummy";
+                            var dummyb4 = document.createElement("span");
+                            dummyb4.className = "dummyb4 dummy";
 
+                            //doesn't see to do anything?
+                            /*
                             if (range.startOffset === 0 && range.endOffset === 0) {
 
                                 var cont = expandedSelRange.startContainer;
@@ -141,22 +150,32 @@
                                 topOffset = -25;
                                 leftOffset = 40;
                             }
+                            */
+                            topOffset = +10;
+                            leftOffset = -5;
 
 
                             if (numClicks !== clicks) return;
                             $(settings.selector).hide();
                             if (!isIE && $.trim(selText) === $.trim(expandedSelRange.startContainer.innerText)) {
                                 expandedSelRange.startContainer.innerHTML += "<span class='dummy'>&nbsp;</span>";
-                                position = $(".dummy").offset();
-                                $(".dummy").remove();
+                                positionStart = $(".dummyb4").offset();
+                                positionAfter = $(".dummyafter").offset();
                             } else if (!isIE && $.trim(selText) === $.trim(expandedSelRange.endContainer.innerText)) {
                                 expandedSelRange.endContainer.innerHTML += "<span class='dummy'>&nbsp;</span>";
-                                position = $(".dummy").offset();
-                                $(".dummy").remove();
+                                positionStart = $(".dummyb4").offset();
+                                positionAfter = $(".dummyafter").offset();
                             } else {
                                 expandedSelRange.insertNode(dummy);
-                                position = $(dummy).offset();
-                                dummy.parentNode.removeChild(dummy);
+                                b4SelRange.insertNode(dummyb4);
+                                
+                                //resets selection
+                                range.setStartAfter(dummyb4);
+                                sel.removeAllRanges();
+                                sel.addRange(range);
+                                
+                                positionStart = $('.dummyb4').offset();
+                                positionAfter = $('.dummyafter').offset();
                             }
                         }
                     } else if (document.selection && document.selection.createRange) {
@@ -168,15 +187,21 @@
 
                         range.collapse(false);
                         range.pasteHTML(html);
+                        positionStart = $(".dummyb4").offset();
+                        positionAfter = $(".dummyafter").offset();
 
                         expandedSelRange.setEndPoint("EndToEnd", range);
                         expandedSelRange.select();
-                        position = $(".dummy").offset();
-                        $(".dummy").remove();
                     }
+                    poptop=positionAfter.top;
+                    popleft=(parseInt(positionStart.left) + parseInt(positionAfter.left))/2;
+                    topOffset = +10;
+                    leftOffset = 0;
+                    
+                    $(".dummy").remove();
 
-                    $(settings.selector).css("top", position.top + topOffset + "px");
-                    $(settings.selector).css("left", position.left + leftOffset + "px");
+                    $(settings.selector).css("top", poptop + topOffset + "px");
+                    $(settings.selector).css("left", popleft + leftOffset + "px");
                     $(settings.selector).show(300, function() {
                         settings.complete(selText);
                     });
@@ -208,7 +233,7 @@
                 });
 
                 $(this).bind('dblclick.highlighter', function (e) {
-                    numClicks = 2;
+                    //numClicks = 2;//this was breaking maintaining selection
                     setTimeout(function () {
                         insertSpanAfterSelection(2);
                     }, 300);
